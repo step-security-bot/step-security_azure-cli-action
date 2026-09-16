@@ -1,0 +1,113 @@
+name: pr-test
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+
+jobs:
+  basic_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Compile files
+        run: |
+          npm run build
+
+      - name: Specific version test- Postive
+        uses: ./
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az --version
+
+      - name: Latest version test - Postive
+        uses: ./
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az --version
+
+      - name: Default version test - Postive
+        uses: ./
+        with:
+          inlineScript: |
+            az --version
+
+      - name: Invalid Version test - Negative
+        id: test1
+        continue-on-error: true
+        uses: ./
+        with:
+          azcliversion: 0
+          inlineScript: |
+            az --version
+
+      - name: Check Last step failed
+        if: steps.test1.outcome == 'success'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            core.setFailed('Last action should fail but not. Please check it.')
+
+      - name: Invalid Script test - Negative
+        id: test2
+        continue-on-error: true
+        uses: ./
+        with:
+          azcliversion: latest
+          inlineScript: " "
+
+      - name: Check Last step failed
+        if: steps.test2.outcome == 'success'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            core.setFailed('Last action should fail but not. Please check it.')
+
+  os_test:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: windows-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Compile files
+        run: |
+          npm run build
+
+      - name: Invalid OS - Negative
+        id: test3
+        continue-on-error: true
+        uses: ./
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az --version
+
+      - name: Check Last step failed
+        if: steps.test3.outcome == 'success'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            core.setFailed('Last action should fail but not. Please check it.')
